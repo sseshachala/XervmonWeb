@@ -16,16 +16,16 @@
 
 // ** MySQL settings - You can get this info from your web host ** //
 /** The name of the database for WordPress */
-define('DB_NAME', 'xervmon20_mainsite');
+define('DB_NAME', 'XXXXXXXXX');
 
 /** MySQL database username */
-define('DB_USER', 'xervmon_user');
+define('DB_USER', 'XXX9999');
 
 /** MySQL database password */
-define('DB_PASSWORD', 'xervmon2763man');
+define('DB_PASSWORD', 'XXXX9988');
 
 /** MySQL hostname */
-define('DB_HOST', '127.0.1');
+define('DB_HOST', '127.0.0.1');
 
 /** Database Charset to use in creating database tables. */
 define('DB_CHARSET', 'utf8');
