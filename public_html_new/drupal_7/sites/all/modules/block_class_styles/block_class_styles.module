@@ -1,0 +1,247 @@
+<?php
+/**
+ * @file
+ * Base module file for block_class_styles
+ *
+ * @defgroup block_class_styles Block Class Presets
+ * @{
+ */
+
+/**
+ * @var BLOCK_CLASS_STYLES_PATH_SETTINGS
+ *
+ * Path to the settings page
+ */
+define('BLOCK_CLASS_STYLES_PATH_SETTINGS', 'admin/structure/block/styles');
+
+/**
+ * @var BLOCK_CLASS_STYLES_TITLE_FORMAT
+ *
+ * Default format for titles, leave NULL to use drupal core sanitization
+ */
+define('BLOCK_CLASS_STYLES_TITLE_FORMAT', NULL);
+
+/**
+ * @var BLOCK_CLASS_STYLES_HIDE_CLASSES
+ *
+ * Default value for hiding the block_class textfield
+ */
+define('BLOCK_CLASS_STYLES_HIDE_CLASSES', TRUE);
+
+/**
+ * @var BLOCK_CLASS_STYLES_FS_TITLE
+ *
+ * Default fieldset title
+ */
+define('BLOCK_CLASS_STYLES_FS_TITLE', 'Theme/Style');
+
+/**
+ * @var BLOCK_CLASS_STYLES_FS_DESCRIPTION
+ *
+ * Default fieldset description
+ */
+define('BLOCK_CLASS_STYLES_FS_DESCRIPTION', 'Control the appearance of this block by choosing a style for it.');
+
+/**
+ * @var BLOCK_CLASS_STYLES_DESCRIPTION
+ *
+ * The default description that appears under the select element
+ */
+define('BLOCK_CLASS_STYLES_DESCRIPTION', '');
+
+/**
+ * @var BLOCK_CLASS_STYLES_TITLE
+ *
+ * The default select title
+ */
+define('BLOCK_CLASS_STYLES_TITLE', 'Block Style');
+
+/**
+ * @var BLOCK_CLASS_STYLES_ALLOW_MULTIPLE
+ *
+ * True/False Should we allow more than one class?
+ */
+define('BLOCK_CLASS_STYLES_ALLOW_MULTIPLE', FALSE);
+
+
+/**
+ * Implements hook_help().
+ *
+ * http://api.drupal.org/api/function/hook_help
+ *
+ * @param string $path
+ *   The router menu path, as defined in hook_menu(), for the help that is
+ *   being requested; e.g., 'admin/node' or 'user/edit'. If the router path
+ *   includes a % wildcard, then this will appear in $path; for example, node
+ *   pages would have $path equal to 'node/%' or 'node/%/view'. Your hook
+ *   implementation may also be called with special descriptors after a "#" sign.
+ * @param array $arg
+ *   An array that corresponds to the return value of the arg() function, for
+ *   modules that want to provide help that is specific to certain values of
+ *   wildcards in $path. For example, you could provide help for the path
+ *   'user/1' by looking for the path 'user/%' and $arg[1] == '1'. This array
+ *   should always be used rather than directly invoking arg(), because your
+ *   hook implementation may be called for other purposes besides building the
+ *   current page's help. Note that depending on which module is invoking
+ *   hook_help, $arg may contain only empty strings. Regardless, $arg[0] to
+ *   $arg[11] will always be set.
+ */
+function block_class_styles_help($path, $arg) {
+  switch ($path) {
+    case BLOCK_CLASS_STYLES_PATH_SETTINGS:
+      $output = '';
+      $output .= <<<EOD
+<p>When you edit the css for a style definition, all blocks with that style will receive the new css; they are automatically updated.</p>
+<p>You may change the style name, as long as you don't edit the css.</p>
+<p>To change both you need to do the css first, save the form, then do the stylename, and save the form.</p>
+<p>Each style generates a <a href="http://drupal.org/node/1089656" onclick="window.open(this.href); return false;">theme hook suggestion</a>, so you can override <code>block.tpl.php</code> for each style with the appropriate tpl file.  See the Delete a Style list for the template filenames that correspond to each style. </p>
+EOD;
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function block_class_styles_permission() {
+  return array(
+    'administer block_class_styles' => array(
+      'title' => t('Administer Block Class Styles'),
+      'description' => t('Define styles and other settings for the module.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function block_class_styles_menu() {
+  $items = array();
+
+  $items[BLOCK_CLASS_STYLES_PATH_SETTINGS] = array(
+    'title' => 'Block Styles',
+    'description' => 'Define preset classes and styles.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('block_class_styles_admin_settings'),
+    'file' => 'block_class_styles.admin.inc',
+    'access arguments' => array('administer block_class_styles'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Return the defined presets
+ */
+function block_class_styles_info() {
+  $presets = variable_get('block_class_styles_presets', array());
+  drupal_alter('block_class_styles_info', $presets);
+  return (array) $presets;
+}
+
+/**
+ * Return a style by it's css
+ *
+ * @param string $css
+ *
+ * @return string or FALSE
+ */
+function block_class_styles_get_style($css) {
+  $presets = block_class_styles_info();
+  return $css && array_key_exists($css, $presets) ? $presets[$css] : FALSE;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function block_class_styles_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == 'block_admin_configure' || $form_id == 'block_add_block_form') {
+
+    $form['block_class']['#title'] = variable_get('block_class_styles_fs_title', BLOCK_CLASS_STYLES_FS_TITLE);
+    $form['block_class']['#description'] = variable_get('block_class_styles_fs_description', BLOCK_CLASS_STYLES_FS_DESCRIPTION);
+
+    $block = new stdClass;
+    $block->module = $form['module']['#value'];
+    $block->delta = $form['delta']['#value'];
+    $css_class = $form['settings']['css_class']['#default_value'];
+
+    //print '<pre>'; print __FUNCTION__ . "():\n"; print_r($form['settings']); print '</pre>'; die;
+
+    $multiple = FALSE;
+    //@todo See admin.inc for explanation
+    //$multiple = current(variable_get('block_class_styles_allow_multiple', BLOCK_CLASS_STYLES_ALLOW_MULTIPLE));
+
+    $options = block_class_styles_info();
+    $default = array($css_class);
+    if (!$multiple) {
+      $options = array(NULL => t('-None-')) + $options;
+      $default = $css_class;
+    }
+
+    $form['block_class_styles'] = array(
+      '#type' => 'fieldset',
+      '#title' => variable_get('block_class_styles_fs_title', BLOCK_CLASS_STYLES_FS_TITLE),
+      '#description' => variable_get('block_class_styles_fs_description', BLOCK_CLASS_STYLES_FS_DESCRIPTION),
+      '#collapsible' => TRUE,
+      '#collapsed' => !variable_get('block_class_styles_form_collapsed', FALSE),
+      '#weight' => variable_get('block_class_styles_form_weight', 0),
+    );
+
+    $form['block_class_styles']['css_class'] = array(
+      '#type' => $multiple ? 'checkboxes' : 'select',
+      '#title' => variable_get('block_class_styles_title', BLOCK_CLASS_STYLES_TITLE),
+      '#options' => $options,
+      '#default_value' => $default,
+      '#description' => variable_get('block_class_styles_description', BLOCK_CLASS_STYLES_DESCRIPTION),
+      '#maxlength' => 255,
+    );
+
+    // This field needs to be hidden because we show it in our own way in our
+    // fieldset, and... we can't set #access to FALSE because our variable name
+    // is the same, so we have turn it into a non-displaying type = 'value'
+    $form['settings']['css_class']['#type'] = 'value';
+  }
+}
+
+/**
+ * Implements hook_preprocess_block().
+ *
+ * @param &$vars
+ *
+ * @return NULL
+ */
+function block_class_styles_preprocess_block(&$vars) {
+  if (isset($vars['block']->css_class)
+      && ($css = $vars['block']->css_class)
+      && ($style = block_class_styles_get_style($css))
+      && ($style = _block_class_styles_theme_hook_suggestion($style))) {
+    if ($insert_after = array_search('block__block', $vars['theme_hook_suggestions'])) {
+      array_splice($vars['theme_hook_suggestions'], $insert_after + 1, 0, array($style));
+    }
+    else {
+      $vars['theme_hook_suggestions'][] = $style;
+    }
+  }
+
+  if ($vars['block']->title &&
+      $vars['block']->title != '<none>' &&
+      ($format = variable_get('block_class_styles_title_format', BLOCK_CLASS_STYLES_TITLE_FORMAT))) {
+    $vars['block']->subject = check_markup($vars['block']->title, $format);
+
+    // Now strip the outermost <p> which could show up from check_markup
+    preg_match('/^\s*<p>(.*)<\/p>\s*$/is', $vars['block']->subject, $found);
+    $vars['block']->subject = isset($found[1]) ? $found[1] : $vars['block']->subject;
+  }
+}
+
+/**
+ * Return the theme_hook_suggestion for a style
+ *
+ * @param string $style
+ *
+ * @return string
+ */
+function _block_class_styles_theme_hook_suggestion($style) {
+  return 'block__' . strtolower(str_replace('-', '_', drupal_clean_css_identifier($style)));
+}

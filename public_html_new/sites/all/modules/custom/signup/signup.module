@@ -1,0 +1,125 @@
+<?php
+/**
+* @file
+* Play with the Form API.
+*/
+/**
+* Implements hook_menu().
+*/
+function signup_menu() {
+$items['signup'] = array(
+'title' => 'Sign Up',
+'page callback' => 'drupal_get_form',
+'page arguments' => array('signup_signupform'),
+'access callback' => TRUE,
+'type' => MENU_NORMAL_ITEM
+);
+return $items;
+}
+/**
+* Define a form.
+*/
+
+
+function signup_signupform() {
+	$form['first_name'] = array(
+	'#title' => t('First Name'),
+	'#type' => 'textfield',
+	'#required' => true
+	);
+	$form['company_name'] = array(
+	'#title' => t('Company'),
+	'#type' => 'textfield',
+	'#required' => true
+	);
+	$form['last_name'] = array(
+	'#title' => t('Last Name'),
+	'#type' => 'textfield',
+	'#required' => true
+	);
+	$form['email'] = array(
+	'#title' => t('Email'),
+	'#type' => 'textfield',
+	'#required' => true,
+	'#element_validate' => array('myelement_email_validate')
+	);
+	$form['phone'] = array(
+	'#title' => t('Phone'),
+	'#type' => 'textfield',
+	'#required' => false
+	);
+	$form['submit'] = array(
+	'#type' => 'submit',
+	'#value' => t('Submit')
+	);
+	return $form;
+}
+
+
+/**
+* Validate the form.
+*/
+function myelement_email_validate($element, &$form_state, $form) {
+  $value = $element['#value'];
+  if (!valid_email_address($value)) {
+    form_error($element, t('Please enter a valid email address.'));
+  }
+}
+function signup_signupform_validate($form, &$form_state) {
+
+}
+/**
+* Handle post-validation form submission.
+*/
+function signup_signupform_submit($form, &$form_state) {
+$name = $form_state['values']['first_name'];
+//drupal_set_message(t('Thanks for filling out the form, %name',
+//array('%name' => $name)));
+
+$my_module = 'signup';
+$my_mail_token = '';
+$from = variable_get('system_mail', 'support@xervmon.com');
+$to = $form_state['values']['email'];
+$first_name = $form_state['values']['first_name'];
+$last_name = $form_state['values']['last_name'];
+$body =  array(implode('<br/>', $form_state['values']));
+
+$headers = array('From'=>$from,'Sender'=>$from,'Return-Path'=>$from);
+
+$messages = array('id' => $my_module . '_' . $my_mail_token,
+		  'to' => $to,
+		  'subject' => 'Sign Up:' . $first_name . ' ' . $last_name,
+		  'body' => $body,
+		  'headers' => $headers
+		);
+
+
+}
+
+
+
+
+// function email_signup_mail($key, &$message, $params) {
+//   global $user;
+//   $options = array(
+//     'langcode' => $message['language']->language,
+//   );
+
+//   switch ($key) {
+//     // Send a simple message from the contact form.
+//     case 'signup_signupform':
+//       $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
+//       // Note that the message body is an array, not a string.
+//       $message['body'][] = t('@name sent you the following message:', array('@first_name' => $user->first_name), $options);
+
+//       $message['body'][] = check_plain($params['message']);
+//       break;
+//   }
+// }
+
+
+
+
+
+
+?>

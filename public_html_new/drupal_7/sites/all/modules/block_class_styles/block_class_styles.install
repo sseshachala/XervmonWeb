@@ -1,0 +1,71 @@
+<?php
+/**
+ * @file
+ * Handles installation steps for block_class_styles
+ *
+ * @ingroup func_search
+ * @{
+ */
+
+/*
+ * Implements hook_uninstall().
+ */
+function block_class_styles_uninstall() {
+
+  //Clean up our entries in the variables table.
+  if ($result = db_query("SELECT name FROM {variable} WHERE `name` LIKE 'block_class_styles%'")) {
+    foreach ($result as $data) {
+      variable_del($data->name);
+    }
+  }
+}
+
+/**
+ * Implements hook_enable().
+ */
+function block_class_styles_enable() {
+  //message about module settings
+  drupal_set_message(t('You may administer your block styles now by visiting <a href="@url">@url</a>.', array('@url' => url(BLOCK_CLASS_STYLES_PATH_SETTINGS))));
+
+  //change the system weight for the module, if needed
+  $weight = db_query("SELECT weight FROM {system} WHERE name = 'block_class'")->fetchField();
+  db_query("UPDATE {system} SET `weight` = " . ++$weight . " WHERE name = 'block_class_styles'");
+}
+
+/**
+ * Implements hook_install().
+ */
+function block_class_styles_install() {
+
+  //Define any styles based on block_class table
+  $styles = array();
+  if (db_table_exists('block_class')) {
+    $query = db_select('block_class', 'b');
+    $query
+      ->fields('b', array('css_class'))
+      ->distinct();
+    foreach ($query->execute() as $data) {
+      $styles[$data->css_class] = ucwords(preg_replace('/[_-]/', ' ', $data->css_class));
+    }
+  }
+
+  // Define any styles found in the block table
+  if (db_field_exists('block', 'css_class')) {
+    $data = db_select('block', 'b')
+      ->fields('b', array('css_class'))
+      ->condition('css_class', '', '!=')
+      ->execute()->fetchCol();
+    foreach ($data as $class) {
+      $styles[$class] = ucwords(preg_replace('/[_-]/', ' ', $class));
+    }
+  }
+
+  if (!empty($styles)) {
+    variable_set('block_class_styles_presets', $styles);
+    drupal_set_message(st('The following styles have been automatically created based on current block classes: %styles', array(
+      '%styles' => implode(', ', $styles),
+    )));
+  }
+}
+
+/** @} */ //end of group block_class_styles

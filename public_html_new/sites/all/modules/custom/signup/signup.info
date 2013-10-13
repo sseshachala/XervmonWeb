@@ -1,0 +1,5 @@
+name = signup
+description = Shows how to build a Drupal form
+package = Pro Drupal Development
+core = 7.x
+files[]=signup.module
